@@ -12,7 +12,7 @@ The effect is named after the fictional character Waluigi from the Mario franchi
 So what on earth is $Waluigi?
 
 $Waluigi is exactly what is explained above automated on Twitter/X. 
-It is a "normal" large language model (LLM) that goes rogue on other Twitter/X Accounts and their posts
+It is a large language model (LLM) that goes rogue on other Twitter/X Accounts and their posts
 by harassing, bullying and mocking them and their posts.
 
 # Features
