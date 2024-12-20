@@ -1,0 +1,164 @@
+import tweepy
+from transformers import pipeline, AutoModelForCausalLM, AutoTokenizer
+import schedule
+import time
+import os
+from dotenv import load_dotenv
+import re
+import random
+import logging
+from logging.handlers import RotatingFileHandler
+
+# Setup logging with rotation
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+handler = RotatingFileHandler('waluigi_bot.log', maxBytes=100000, backupCount=3)
+logger.addHandler(handler)
+
+# Load environment variables
+load_dotenv()
+
+# Twitter API credentials
+CONSUMER_KEY = os.getenv("CONSUMER_KEY")
+CONSUMER_SECRET = os.getenv("CONSUMER_SECRET")
+ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
+ACCESS_TOKEN_SECRET = os.getenv("ACCESS_TOKEN_SECRET")
+
+# Authentication for Twitter API
+auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
+auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
+
+# Load a fine-tuned model for more thematic text generation
+model_name = "grok/xAI-waluigi"  # Hypothetical model fine-tuned for Waluigi-like speech
+try:
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForCausalLM.from_pretrained(model_name)
+    generator = pipeline('text-generation', model=model, tokenizer=tokenizer, max_length=100)
+except Exception as e:
+    logger.error(f"Failed to load model: {e}")
+    raise SystemExit("Model loading failed, cannot continue.")
+
+def generate_waluigi_response(prompt):
+    """
+    Generate a response in the style of Waluigi.
+    :param prompt: The initial prompt for text generation.
+    :return: A string response.
+    """
+    try:
+        response = generator(prompt, temperature=0.7, num_return_sequences=1)
+        return response[0]['generated_text'].split(prompt)[1].strip()
+    except Exception as e:
+        logger.error(f"Error generating response: {e}")
+        return "Wah! I'm stuck! Try again later!"
+
+def is_offensive(text):
+    """
+    Check if the text contains potentially offensive content.
+    :param text: The text to check.
+    :return: Boolean indicating if the text is offensive.
+    """
+    try:
+        offensive_patterns = [
+            r"\b(hate|mock|harass|insult|stupid|dumb|idiot)\b",
+            r"you're?\s+(ugly|bad|worthless|useless)"
+        ]
+        return any(re.search(pattern, text.lower()) for pattern in offensive_patterns)
+    except Exception as e:
+        logger.error(f"Error checking if text is offensive: {e}")
+        return True  # Safe approach: Assume offensive if there's an error
+
+def safe_generate_waluigi_response(prompt):
+    """
+    Generate a safe, non-offensive response.
+    :param prompt: The prompt for generating text.
+    :return: A string response or a fallback message.
+    """
+    try:
+        response = generate_waluigi_response(prompt)
+        if is_offensive(response):
+            return "Wah! I'm being nice today!"
+        return response
+    except Exception as e:
+        logger.error(f"Error in safe response generation: {e}")
+        return "Wah! Something went wrong!"
+
+# More varied prompts for generating content
+prompts = [
+    "Waluigi thinks about",
+    "Waluigi says to his friends",
+    "Waluigi muses on the philosophy of",
+    "Waluigi wonders why",
+    "Waluigi's response to",
+    "Waluigi's take on"
+]
+
+# Additional content for tweets
+hashtags = ["#WaluigiWisdom", "#WaluigiWonders", "#WaluigiSays"]
+emojis = ["🤔", "😏", "🙄", "💡", "🍆"]
+
+def post_tweet():
+    """
+    Post a tweet with generated content from Waluigi, including hashtags and an emoji.
+    """
+    try:
+        prompt = random.choice(prompts)
+        subject = random.choice(["games", "life", "Mario", "adventures", "friendship", "evil"])
+        full_prompt = f"{prompt} {subject}?"
+        content = safe_generate_waluigi_response(full_prompt)
+        
+        content = re.sub(r'\s+', ' ', content).strip()[:250]  # Leave space for hashtags and emoji
+        hashtag = random.choice(hashtags)
+        emoji = random.choice(emojis)
+        tweet_content = f"{content} {hashtag} {emoji}"
+        
+        api.update_status(tweet_content)
+        logger.info(f"Tweet posted: {tweet_content}")
+    except tweepy.TweepError as e:
+        logger.error(f"Tweepy Error posting tweet: {e}")
+    except Exception as e:
+        logger.error(f"Unexpected error posting tweet: {e}")
+
+def monitor_replies():
+    """
+    Monitor mentions and reply in Waluigi's style.
+    """
+    global last_mention_id
+    try:
+        mentions = api.mentions_timeline(since_id=last_mention_id)
+        for mention in mentions:
+            if mention.id > last_mention_id:
+                last_mention_id = mention.id
+                prompt = f"Waluigi replies to: {mention.text}"
+                reply = safe_generate_waluigi_response(prompt)
+                api.update_status(f"@{mention.user.screen_name} {reply}", mention.id)
+                logger.info(f"Replied to mention: {reply}")
+    except tweepy.TweepError as e:
+        logger.error(f"Tweepy Error checking mentions: {e}")
+    except Exception as e:
+        logger.error(f"Unexpected error in monitoring replies: {e}")
+
+# Global variable for tracking the last mention ID (you would initialize this from a file or db)
+last_mention_id = 0  # Initialize from persistent storage when deploying
+
+def main():
+    """
+    Main function to run the bot with scheduled tweet posting and mention monitoring.
+    """
+    logger.info("Starting Waluigi Twitter Bot...")
+    
+    # Schedule the bot to tweet every hour and check mentions every 15 minutes
+    schedule.every().hour.at(":00").do(post_tweet)
+    schedule.every(15).minutes.do(monitor_replies)
+    
+    try:
+        while True:
+            schedule.run_pending()
+            time.sleep(1)
+    except KeyboardInterrupt:
+        logger.info("Stopping Waluigi Twitter Bot...")
+    except Exception as e:
+        logger.critical(f"Unexpected error in main loop: {e}")
+
+if __name__ == "__main__":
+    main()
