@@ -54,3 +54,7 @@ Basic Offensive Content Check: The offensive content filter is simplistic; more 
 Lack of Learning: This LLM does not learn from interactions; adding machine learning to refine responses based on user feedback or interaction patterns would be an advanced feature.
 
 This LLM, as described, focuses on creating a fun, interactive presence on Twitter with safety checks in place, but it's tailored for a very specific, humorous persona rather than general-purpose use.
+
+# Acknowledgements
+![397320559-e1bfbd19-54de-494a-9ed8-fd09c48bc0b1](https://github.com/user-attachments/assets/76fae3fa-59c1-4229-8e3c-5fb8f989da7b)
+
