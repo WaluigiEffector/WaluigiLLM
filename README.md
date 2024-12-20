@@ -1,7 +1,5 @@
 # WaluigiLLM
 
-What exactly is the "Waluigi Effect" ... ?
-
 In the field of artificial intelligence (AI), the Waluigi effect is a phenomenon of large language models (LLMs) 
 in which the chatbot or model "goes rogue" and may produce results opposite the designed intent, including potentially 
 threatening or hostile output, either unexpectedly or through intentional prompt engineering. 
